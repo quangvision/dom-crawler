@@ -54,6 +54,8 @@ class Crawler implements \Countable, \IteratorAggregate
      */
     private $isHtml = true;
 
+    //Customize $node name property (from cache)
+    public $selector,$node;
     /**
      * @param mixed  $node     A Node to use as the base for the crawling
      * @param string $uri      The current URI
@@ -435,7 +437,8 @@ class Crawler implements \Countable, \IteratorAggregate
     public function siblings()
     {
         if (!$this->nodes) {
-            throw new \InvalidArgumentException('The current node list is empty.');
+            //throw new \InvalidArgumentException('The current node list is empty.');
+            return $this->nodesNotFound();
         }
 
         return $this->createSubCrawler($this->sibling($this->getNode(0)->parentNode->firstChild));
@@ -451,7 +454,8 @@ class Crawler implements \Countable, \IteratorAggregate
     public function nextAll()
     {
         if (!$this->nodes) {
-            throw new \InvalidArgumentException('The current node list is empty.');
+            //throw new \InvalidArgumentException('The current node list is empty.');
+            return $this->nodesNotFound();
         }
 
         return $this->createSubCrawler($this->sibling($this->getNode(0)));
@@ -467,7 +471,8 @@ class Crawler implements \Countable, \IteratorAggregate
     public function previousAll()
     {
         if (!$this->nodes) {
-            throw new \InvalidArgumentException('The current node list is empty.');
+            //throw new \InvalidArgumentException('The current node list is empty.');
+            return $this->nodesNotFound();
         }
 
         return $this->createSubCrawler($this->sibling($this->getNode(0), 'previousSibling'));
@@ -483,7 +488,8 @@ class Crawler implements \Countable, \IteratorAggregate
     public function parents()
     {
         if (!$this->nodes) {
-            throw new \InvalidArgumentException('The current node list is empty.');
+            //throw new \InvalidArgumentException('The current node list is empty.');
+            return $this->nodesNotFound();
         }
 
         $node = $this->getNode(0);
@@ -508,7 +514,8 @@ class Crawler implements \Countable, \IteratorAggregate
     public function children()
     {
         if (!$this->nodes) {
-            throw new \InvalidArgumentException('The current node list is empty.');
+            //throw new \InvalidArgumentException('The current node list is empty.');
+            return $this->nodesNotFound();
         }
 
         $node = $this->getNode(0)->firstChild;
@@ -527,8 +534,9 @@ class Crawler implements \Countable, \IteratorAggregate
      */
     public function attr($attribute)
     {
-        if (!$this->nodes) {
-            throw new \InvalidArgumentException('The current node list is empty.');
+        if (! $this->nodes) {
+            //throw new \InvalidArgumentException('The current node list is empty.');
+            return $this->nodesNotFound();
         }
 
         $node = $this->getNode(0);
@@ -546,7 +554,8 @@ class Crawler implements \Countable, \IteratorAggregate
     public function nodeName()
     {
         if (!$this->nodes) {
-            throw new \InvalidArgumentException('The current node list is empty.');
+           //throw new \InvalidArgumentException('The current node list is empty.');
+           return $this->nodesNotFound();
         }
 
         return $this->getNode(0)->nodeName;
@@ -562,7 +571,8 @@ class Crawler implements \Countable, \IteratorAggregate
     public function text()
     {
         if (!$this->nodes) {
-            throw new \InvalidArgumentException('The current node list is empty.');
+            //throw new \InvalidArgumentException('The current node list is empty.');
+            return $this->nodesNotFound();
         }
 
         return $this->getNode(0)->nodeValue;
@@ -578,7 +588,8 @@ class Crawler implements \Countable, \IteratorAggregate
     public function html()
     {
         if (!$this->nodes) {
-            throw new \InvalidArgumentException('The current node list is empty.');
+            //throw new \InvalidArgumentException('The current node list is empty.');
+            return $this->nodesNotFound();
         }
 
         $html = '';
@@ -691,6 +702,10 @@ class Crawler implements \Countable, \IteratorAggregate
      */
     public function filter($selector)
     {
+        //Save HTML selector to selector property
+        //dd($selector);
+        $this->selector = $selector;
+
         if (!class_exists(CssSelectorConverter::class)) {
             throw new \RuntimeException('To filter with a CSS selector, install the CssSelector component ("composer require symfony/css-selector"). Or use filterXpath instead.');
         }
@@ -710,9 +725,10 @@ class Crawler implements \Countable, \IteratorAggregate
      */
     public function selectLink($value)
     {
-        return $this->filterRelativeXPath(
-            sprintf('descendant-or-self::a[contains(concat(\' \', normalize-space(string(.)), \' \'), %1$s) or ./img[contains(concat(\' \', normalize-space(string(@alt)), \' \'), %1$s)]]', static::xpathLiteral(' '.$value.' '))
-        );
+        $xpath = sprintf('descendant-or-self::a[contains(concat(\' \', normalize-space(string(.)), \' \'), %s) ', static::xpathLiteral(' '.$value.' ')).
+                            sprintf('or ./img[contains(concat(\' \', normalize-space(string(@alt)), \' \'), %s)]]', static::xpathLiteral(' '.$value.' '));
+
+        return $this->filterRelativeXPath($xpath);
     }
 
     /**
@@ -738,9 +754,12 @@ class Crawler implements \Countable, \IteratorAggregate
      */
     public function selectButton($value)
     {
-        return $this->filterRelativeXPath(
-            sprintf('descendant-or-self::input[((contains(%1$s, "submit") or contains(%1$s, "button")) and contains(concat(\' \', normalize-space(string(@value)), \' \'), %2$s)) or (contains(%1$s, "image") and contains(concat(\' \', normalize-space(string(@alt)), \' \'), %2$s)) or @id=%3$s or @name=%3$s] | descendant-or-self::button[contains(concat(\' \', normalize-space(string(.)), \' \'), %2$s) or @id=%3$s or @name=%3$s]', 'translate(@type, "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz")', static::xpathLiteral(' '.$value.' '), static::xpathLiteral($value))
-        );
+        $translate = 'translate(@type, "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz")';
+        $xpath = sprintf('descendant-or-self::input[((contains(%s, "submit") or contains(%1$s, "button")) and contains(concat(\' \', normalize-space(string(@value)), \' \'), %s)) ', $translate, static::xpathLiteral(' '.$value.' ')).
+                         sprintf('or (contains(%s, "image") and contains(concat(\' \', normalize-space(string(@alt)), \' \'), %s)) or @id=%s or @name=%s] ', $translate, static::xpathLiteral(' '.$value.' '), static::xpathLiteral($value), static::xpathLiteral($value)).
+                         sprintf('| descendant-or-self::button[contains(concat(\' \', normalize-space(string(.)), \' \'), %s) or @id=%s or @name=%s]', static::xpathLiteral(' '.$value.' '), static::xpathLiteral($value), static::xpathLiteral($value));
+
+        return $this->filterRelativeXPath($xpath);
     }
 
     /**
@@ -755,7 +774,8 @@ class Crawler implements \Countable, \IteratorAggregate
     public function link($method = 'get')
     {
         if (!$this->nodes) {
-            throw new \InvalidArgumentException('The current node list is empty.');
+            //throw new \InvalidArgumentException('The current node list is empty.');
+            return $this->nodesNotFound();
         }
 
         $node = $this->getNode(0);
@@ -798,7 +818,8 @@ class Crawler implements \Countable, \IteratorAggregate
     public function image()
     {
         if (!count($this)) {
-            throw new \InvalidArgumentException('The current node list is empty.');
+           //throw new \InvalidArgumentException('The current node list is empty.');
+           return $this->nodesNotFound();
         }
 
         $node = $this->getNode(0);
@@ -842,7 +863,8 @@ class Crawler implements \Countable, \IteratorAggregate
     public function form(array $values = null, $method = null)
     {
         if (!$this->nodes) {
-            throw new \InvalidArgumentException('The current node list is empty.');
+            //throw new \InvalidArgumentException('The current node list is empty.');
+            return $this->nodesNotFound();
         }
 
         $node = $this->getNode(0);
@@ -1077,9 +1099,8 @@ class Crawler implements \Countable, \IteratorAggregate
     {
         $nodes = array();
 
-        $currentNode = $this->getNode(0);
         do {
-            if ($node !== $currentNode && XML_ELEMENT_NODE === $node->nodeType) {
+            if ($node !== $this->getNode(0) && 1 === $node->nodeType) {
                 $nodes[] = $node;
             }
         } while ($node = $node->$siblingDir);
@@ -1145,7 +1166,19 @@ class Crawler implements \Countable, \IteratorAggregate
         $crawler->isHtml = $this->isHtml;
         $crawler->document = $this->document;
         $crawler->namespaces = $this->namespaces;
-
+        //This is customize properties passed from parent object
+        $crawler->selector = $this->selector;
+        $crawler->uri = $this->uri;
+        $crawler->node = $this->node;
         return $crawler;
+    }
+
+    //This is customized exception handler incase no nodes found
+    public function nodesNotFound()
+    {
+       // throw new \InvalidArgumentException('The current node list is empty.');
+
+       \Log::critical('No value returns from '.$this->selector.' of '.$this->uri);
+       return null;
     }
 }
