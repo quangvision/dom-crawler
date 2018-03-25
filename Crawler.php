@@ -437,8 +437,7 @@ class Crawler implements \Countable, \IteratorAggregate
     public function siblings()
     {
         if (!$this->nodes) {
-            //throw new \InvalidArgumentException('The current node list is empty.');
-            return $this->nodesNotFound();
+            throw new \InvalidArgumentException('The current node list is empty.');
         }
 
         return $this->createSubCrawler($this->sibling($this->getNode(0)->parentNode->firstChild));
@@ -454,8 +453,7 @@ class Crawler implements \Countable, \IteratorAggregate
     public function nextAll()
     {
         if (!$this->nodes) {
-            //throw new \InvalidArgumentException('The current node list is empty.');
-            return $this->nodesNotFound();
+            throw new \InvalidArgumentException('The current node list is empty.');
         }
 
         return $this->createSubCrawler($this->sibling($this->getNode(0)));
@@ -471,8 +469,7 @@ class Crawler implements \Countable, \IteratorAggregate
     public function previousAll()
     {
         if (!$this->nodes) {
-            //throw new \InvalidArgumentException('The current node list is empty.');
-            return $this->nodesNotFound();
+            throw new \InvalidArgumentException('The current node list is empty.');
         }
 
         return $this->createSubCrawler($this->sibling($this->getNode(0), 'previousSibling'));
@@ -488,8 +485,7 @@ class Crawler implements \Countable, \IteratorAggregate
     public function parents()
     {
         if (!$this->nodes) {
-            //throw new \InvalidArgumentException('The current node list is empty.');
-            return $this->nodesNotFound();
+            throw new \InvalidArgumentException('The current node list is empty.');
         }
 
         $node = $this->getNode(0);
@@ -514,8 +510,7 @@ class Crawler implements \Countable, \IteratorAggregate
     public function children()
     {
         if (!$this->nodes) {
-            //throw new \InvalidArgumentException('The current node list is empty.');
-            return $this->nodesNotFound();
+            throw new \InvalidArgumentException('The current node list is empty.');
         }
 
         $node = $this->getNode(0)->firstChild;
@@ -554,8 +549,7 @@ class Crawler implements \Countable, \IteratorAggregate
     public function nodeName()
     {
         if (!$this->nodes) {
-           //throw new \InvalidArgumentException('The current node list is empty.');
-           return $this->nodesNotFound();
+           // throw new \InvalidArgumentException('The current node list is empty.');
         }
 
         return $this->getNode(0)->nodeName;
@@ -774,8 +768,7 @@ class Crawler implements \Countable, \IteratorAggregate
     public function link($method = 'get')
     {
         if (!$this->nodes) {
-            //throw new \InvalidArgumentException('The current node list is empty.');
-            return $this->nodesNotFound();
+            throw new \InvalidArgumentException('The current node list is empty.');
         }
 
         $node = $this->getNode(0);
@@ -818,8 +811,7 @@ class Crawler implements \Countable, \IteratorAggregate
     public function image()
     {
         if (!count($this)) {
-           //throw new \InvalidArgumentException('The current node list is empty.');
-           return $this->nodesNotFound();
+            throw new \InvalidArgumentException('The current node list is empty.');
         }
 
         $node = $this->getNode(0);
@@ -863,8 +855,7 @@ class Crawler implements \Countable, \IteratorAggregate
     public function form(array $values = null, $method = null)
     {
         if (!$this->nodes) {
-            //throw new \InvalidArgumentException('The current node list is empty.');
-            return $this->nodesNotFound();
+            throw new \InvalidArgumentException('The current node list is empty.');
         }
 
         $node = $this->getNode(0);
